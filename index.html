@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Escalada Médica — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #080808;
+  --surface: #0f0f0f;
+  --surface2: #161616;
+  --surface3: #1e1e1e;
+  --border: #222;
+  --border2: #2a2a2a;
+  --gold: #f5c842;
+  --gold2: #e6a800;
+  --green: #00e676;
+  --green2: #00c853;
+  --red: #ff3d57;
+  --blue: #00b0ff;
+  --purple: #d500f9;
+  --orange: #ff6d00;
+  --text: #f0f0f0;
+  --muted: #555;
+  --muted2: #777;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background grid */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(245,200,66,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245,200,66,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glow orbs */
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(245,200,66,0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.container { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding: 0 32px; }
+
+/* Header */
+header {
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(8,8,8,0.95);
+  backdrop-filter: blur(20px);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-mark {
+  width: 40px;
+  height: 40px;
+  background: var(--gold);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  color: #080808;
+  box-shadow: 0 0 20px rgba(245,200,66,0.3);
+}
+
+.logo-text h1 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.logo-text p {
+  font-size: 11px;
+  color: var(--muted2);
+  margin-top: 1px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted2);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Tabs */
+.tabs {
+  border-bottom: 1px solid var(--border);
+  background: rgba(8,8,8,0.8);
+  position: sticky;
+  top: 81px;
+  z-index: 99;
+  backdrop-filter: blur(20px);
+}
+
+.tabs-inner {
+  display: flex;
+  gap: 0;
+}
+
+.tab {
+  padding: 16px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  font-family: 'Syne', sans-serif;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.tab:hover { color: var(--muted2); }
+.tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* Main */
+main { padding: 36px 0 60px; }
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.2s;
+  animation: fadeUp 0.5s ease forwards;
+  opacity: 0;
+}
+
+.kpi-card:hover {
+  border-color: var(--border2);
+  transform: translateY(-2px);
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent, var(--gold));
+  opacity: 0.6;
+}
+
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at top left, rgba(var(--accent-rgb, 245,200,66), 0.04), transparent 60%);
+  pointer-events: none;
+}
+
+.kpi-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted2);
+  margin-bottom: 10px;
+}
+
+.kpi-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--accent, var(--gold));
+  line-height: 1;
+  margin-bottom: 6px;
+  text-shadow: 0 0 20px rgba(var(--accent-rgb, 245,200,66), 0.3);
+}
+
+.kpi-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Charts grid */
+.charts-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.charts-grid-2 { grid-template-columns: 1fr 1fr; }
+.charts-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.charts-grid-full { grid-template-columns: 1fr; }
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  animation: fadeUp 0.5s ease forwards;
+  opacity: 0;
+}
+
+.chart-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted2);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chart-title span {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 6px var(--gold);
+}
+
+.chart-wrap { position: relative; }
+
+/* Qual bars */
+.qual-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.qual-info {
+  flex: 1;
+}
+
+.qual-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.qual-name {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.qual-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.qual-bar-bg {
+  height: 5px;
+  background: var(--border2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.qual-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Funil cards */
+.funil-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.funil-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  animation: fadeUp 0.5s ease forwards;
+  opacity: 0;
+}
+
+.funil-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+.funil-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.funil-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.funil-name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.funil-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.funil-stat {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.funil-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted2);
+  margin-bottom: 8px;
+}
+
+.funil-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: var(--accent);
+  text-shadow: 0 0 15px rgba(var(--accent-rgb),0.4);
+}
+
+.funil-bar-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.funil-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* Bar list */
+.bar-list { display: flex; flex-direction: column; gap: 12px; }
+
+.bar-item {}
+
+.bar-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.bar-name {
+  font-size: 12px;
+  color: var(--text);
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bar-bg {
+  height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Pie legend */
+.pie-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.pie-legend {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pie-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pie-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pie-legend-name {
+  font-size: 11px;
+  color: var(--muted2);
+  flex: 1;
+}
+
+.pie-legend-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Section gap */
+.section-gap { margin-top: 16px; }
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.kpi-card:nth-child(1) { animation-delay: 0.05s; }
+.kpi-card:nth-child(2) { animation-delay: 0.1s; }
+.kpi-card:nth-child(3) { animation-delay: 0.15s; }
+.kpi-card:nth-child(4) { animation-delay: 0.2s; }
+.kpi-card:nth-child(5) { animation-delay: 0.25s; }
+.kpi-card:nth-child(6) { animation-delay: 0.3s; }
+
+.chart-card:nth-child(1) { animation-delay: 0.1s; }
+.chart-card:nth-child(2) { animation-delay: 0.2s; }
+.chart-card:nth-child(3) { animation-delay: 0.3s; }
+
+/* Loading */
+#loading {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+  box-shadow: 0 0 20px rgba(245,200,66,0.2);
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-size: 12px;
+  color: var(--muted2);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .charts-grid-2 { grid-template-columns: 1fr; }
+  .funil-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p class="loading-text">Carregando dados...</p>
+</div>
+
+<header>
+  <div class="container">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-mark">E</div>
+        <div class="logo-text">
+          <h1>Escalada Médica</h1>
+          <p>Dashboard de Marketing e Vendas</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="status">
+          <div class="status-dot"></div>
+          <span id="last-update">--:--:--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="container">
+    <div class="tabs-inner">
+      <button class="tab active" onclick="setTab('geral')">Visão Geral</button>
+      <button class="tab" onclick="setTab('funis')">Funis</button>
+      <button class="tab" onclick="setTab('campanhas')">Campanhas</button>
+      <button class="tab" onclick="setTab('perfil')">Perfil dos Leads</button>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="container">
+
+    <!-- VISÃO GERAL -->
+    <div id="page-geral" class="page active">
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="charts-grid charts-grid-2">
+        <div class="chart-card">
+          <div class="chart-title"><span></span>Leads por Mês</div>
+          <div class="chart-wrap" style="height:220px">
+            <canvas id="chart-leads-mes"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><span></span>Qualidade dos Leads</div>
+          <div id="qual-bars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FUNIS -->
+    <div id="page-funis" class="page">
+      <div class="funil-grid" id="funil-cards"></div>
+      <div class="chart-card">
+        <div class="chart-title"><span></span>Faturamento por Mês</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="chart-fat-mes"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAMPANHAS -->
+    <div id="page-campanhas" class="page">
+      <div class="charts-grid charts-grid-2">
+        <div class="chart-card">
+          <div class="chart-title"><span></span>Leads por Público</div>
+          <div class="bar-list" id="bar-campanha"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><span></span>Leads por Campanha</div>
+          <div class="bar-list" id="bar-source"></div>
+        </div>
+      </div>
+      <div class="chart-card section-gap">
+        <div class="chart-title"><span></span>Leads por Anúncio</div>
+        <div class="bar-list" id="bar-content"></div>
+      </div>
+    </div>
+
+    <!-- PERFIL -->
+    <div id="page-perfil" class="page">
+      <div class="charts-grid charts-grid-2">
+        <div class="chart-card">
+          <div class="chart-title"><span></span>Especialidade Médica</div>
+          <div class="bar-list" id="bar-especialidade"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title"><span></span>Faturamento Declarado</div>
+          <div class="pie-wrap">
+            <div style="width:180px;height:180px;flex-shrink:0">
+              <canvas id="chart-fat-decl"></canvas>
+            </div>
+            <div class="pie-legend" id="pie-legend-fat"></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card section-gap">
+        <div class="chart-title"><span></span>Maiores Desafios</div>
+        <div class="bar-list" id="bar-desafio"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+const SHEET_ID = "1-QJJrp8ScoOXN3iqdzMVzkqlZnlclB6tOPzvvWCE_NA";
+const GIDS = {
+  metricas: null,
+  dist_especialidade: null,
+  dist_faturamento: null,
+  dist_desafio: null,
+  leads_por_mes: null,
+  utm_campanha: "1070461951",
+  utm_source: "1544629796",
+  utm_content: "1675881965",
+};
+const SHEET_NAMES = {
+  metricas: "metricas",
+  dist_especialidade: "dist_especialidade",
+  dist_faturamento: "dist_faturamento",
+  dist_desafio: "dist_desafio",
+  leads_por_mes: "leads_por_mes",
+};
+
+const COLORS = ["#f5c842","#00e676","#00b0ff","#d500f9","#ff6d00","#ff3d57","#00e5ff","#76ff03","#ffab40","#e040fb"];
+
+function decodeUTM(str) {
+  return str.replace(/\+/g, ' ').replace(/%20/g, ' ');
+}
+
+async function fetchSheet(key) {
+  const gid = GIDS[key];
+  const name = SHEET_NAMES[key];
+  const param = gid ? `gid=${gid}&tqx=out:csv` : `tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?${param}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const rows = text.trim().split('\n').map(r =>
+    r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim())
+  );
+  const headers = rows[0];
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h,i) => { obj[h] = row[i] || ''; });
+    return obj;
+  });
+}
+
+function fmt(v) {
+  const n = parseFloat(v);
+  if (isNaN(n) || n === 0) return 'R$ 0';
+  return n.toLocaleString('pt-BR', {style:'currency', currency:'BRL', minimumFractionDigits:0});
+}
+
+function num(v) { const n = parseFloat(v); return isNaN(n)?0:n; }
+function pct(a,b) { return b>0 ? ((a/b)*100).toFixed(1)+'%' : '0%'; }
+
+function setTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('page-'+id).classList.add('active');
+}
+
+function makeBarList(el, items, nameKey, countKey, decode=false) {
+  const sorted = [...items].filter(i => num(i[countKey]) > 0).sort((a,b) => num(b[countKey])-num(a[countKey])).slice(0,12);
+  const max = Math.max(...sorted.map(i => num(i[countKey])));
+  el.innerHTML = sorted.map((item,i) => {
+    const name = decode ? decodeUTM(item[nameKey]) : item[nameKey];
+    const count = num(item[countKey]);
+    const w = max > 0 ? (count/max)*100 : 0;
+    const color = COLORS[i % COLORS.length];
+    return `
+      <div class="bar-item">
+        <div class="bar-top">
+          <span class="bar-name" title="${name}">${name || 'Não informado'}</span>
+          <span class="bar-count" style="color:${color}">${count}</span>
+        </div>
+        <div class="bar-bg">
+          <div class="bar-fill" style="width:0%;background:${color}" data-w="${w}"></div>
+        </div>
+      </div>`;
+  }).join('');
+  setTimeout(() => {
+    el.querySelectorAll('.bar-fill').forEach(b => {
+      b.style.width = b.dataset.w + '%';
+    });
+  }, 100);
+}
+
+function makeChart(id, type, labels, datasets, opts={}) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  new Chart(ctx, {
+    type,
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1a1a',
+          borderColor: '#2a2a2a',
+          borderWidth: 1,
+          titleColor: '#777',
+          bodyColor: '#f0f0f0',
+          titleFont: { family: 'JetBrains Mono', size: 11 },
+          bodyFont: { family: 'JetBrains Mono', size: 13, weight: '600' },
+          callbacks: opts.currency ? {
+            label: ctx => fmt(ctx.parsed.y ?? ctx.parsed)
+          } : {}
+        }
+      },
+      scales: type !== 'doughnut' ? {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.03)' },
+          ticks: { color: '#555', font: { family: 'JetBrains Mono', size: 11 } },
+          border: { display: false }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.03)' },
+          ticks: {
+            color: '#555',
+            font: { family: 'JetBrains Mono', size: 11 },
+            callback: opts.currency ? v => `R$${(v/1000).toFixed(0)}k` : undefined
+          },
+          border: { display: false }
+        }
+      } : {},
+      ...opts.extra
+    }
+  });
+}
+
+async function init() {
+  try {
+    const [metricas, especialidade, fatDist, desafio, porMes, utmCampanha, utmSource, utmContent] = await Promise.all([
+      fetchSheet('metricas'),
+      fetchSheet('dist_especialidade'),
+      fetchSheet('dist_faturamento'),
+      fetchSheet('dist_desafio'),
+      fetchSheet('leads_por_mes'),
+      fetchSheet('utm_campanha'),
+      fetchSheet('utm_source'),
+      fetchSheet('utm_content'),
+    ]);
+
+    const m = {};
+    metricas.forEach(r => { m[r.metrica] = r.valor; });
+
+    const totalLeads = num(m.total_leads);
+    const qualif = num(m.leads_qualificados);
+    const desqualif = num(m.leads_desqualificados);
+    const optin = num(m.leads_optin);
+    const vendas = num(m.total_vendas);
+    const fat = num(m.faturamento_total);
+    const leadsS = num(m.leads_sessao_estrategica);
+    const leadsM = num(m.leads_masterclass_mi);
+    const fatS = num(m.faturamento_sessao_estrategica);
+    const fatM = num(m.faturamento_masterclass_mi);
+
+    // KPIs
+    const kpis = [
+      { label: 'Total de Leads', value: totalLeads.toLocaleString('pt-BR'), sub: 'captados', color: '#f5c842', rgb: '245,200,66' },
+      { label: 'Qualificados', value: qualif.toLocaleString('pt-BR'), sub: pct(qualif,totalLeads)+' do total', color: '#00e676', rgb: '0,230,118' },
+      { label: 'Desqualificados', value: desqualif.toLocaleString('pt-BR'), sub: pct(desqualif,totalLeads)+' do total', color: '#ff3d57', rgb: '255,61,87' },
+      { label: 'Vendas Fechadas', value: vendas.toLocaleString('pt-BR'), sub: pct(vendas,qualif)+' conversão', color: '#00b0ff', rgb: '0,176,255' },
+      { label: 'Faturamento', value: fat > 0 ? fmt(fat) : '—', sub: 'valor total fechado', color: '#f5c842', rgb: '245,200,66' },
+      { label: 'ROAS', value: '—', sub: 'aguardando Meta Ads', color: '#333', rgb: '51,51,51' },
+    ];
+
+    const kpiGrid = document.getElementById('kpi-grid');
+    kpiGrid.innerHTML = kpis.map(k => `
+      <div class="kpi-card" style="--accent:${k.color};--accent-rgb:${k.rgb}">
+        <div class="kpi-label">${k.label}</div>
+        <div class="kpi-value">${k.value}</div>
+        <div class="kpi-sub">${k.sub}</div>
+      </div>
+    `).join('');
+
+    // Leads por mês
+    const meses = porMes.filter(r => r.mes);
+    makeChart('chart-leads-mes', 'bar', meses.map(r => r.mes), [{
+      data: meses.map(r => num(r.quantidade)),
+      backgroundColor: 'rgba(245,200,66,0.8)',
+      borderRadius: 6,
+      borderSkipped: false,
+    }]);
+
+    // Qual bars
+    const qualData = [
+      { name: 'Qualificados', count: qualif, color: '#00e676' },
+      { name: 'Desqualificados', count: desqualif, color: '#ff3d57' },
+      { name: 'Optin', count: optin, color: '#555' },
+    ];
+    document.getElementById('qual-bars').innerHTML = qualData.map(q => `
+      <div class="qual-row">
+        <div class="qual-info">
+          <div class="qual-top">
+            <span class="qual-name">${q.name}</span>
+            <span class="qual-count" style="color:${q.color}">${q.count}</span>
+          </div>
+          <div class="qual-bar-bg">
+            <div class="qual-bar-fill" style="width:0%;background:${q.color}" data-w="${totalLeads>0?(q.count/totalLeads)*100:0}"></div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    setTimeout(() => {
+      document.querySelectorAll('.qual-bar-fill').forEach(b => b.style.width = b.dataset.w+'%');
+    }, 200);
+
+    // Funil cards
+    const funils = [
+      { name: 'Sessão Estratégica', leads: leadsS, fat: fatS, color: '#f5c842', rgb: '245,200,66' },
+      { name: 'Masterclass MI', leads: leadsM, fat: fatM, color: '#00b0ff', rgb: '0,176,255' },
+    ];
+    document.getElementById('funil-cards').innerHTML = funils.map(f => `
+      <div class="funil-card" style="--accent:${f.color};--accent-rgb:${f.rgb}">
+        <div class="funil-header">
+          <div class="funil-dot" style="color:${f.color};background:${f.color}"></div>
+          <span class="funil-name">${f.name}</span>
+        </div>
+        <div class="funil-stats">
+          <div class="funil-stat">
+            <div class="funil-stat-label">Leads</div>
+            <div class="funil-stat-value" style="font-size:32px">${f.leads.toLocaleString('pt-BR')}</div>
+          </div>
+          <div class="funil-stat">
+            <div class="funil-stat-label">Faturamento</div>
+            <div class="funil-stat-value" style="font-size:20px">${f.fat > 0 ? fmt(f.fat) : '—'}</div>
+          </div>
+        </div>
+        <div class="funil-bar-label">% do total de leads</div>
+        <div class="qual-bar-bg">
+          <div class="qual-bar-fill" style="width:${totalLeads>0?(f.leads/totalLeads)*100:0}%;background:${f.color}"></div>
+        </div>
+        <div class="funil-pct" style="color:${f.color}">${pct(f.leads,totalLeads)}</div>
+      </div>
+    `).join('');
+
+    // Faturamento por mês
+    makeChart('chart-fat-mes', 'bar', meses.map(r => r.mes), [{
+      data: meses.map(r => num(r.faturamento)),
+      backgroundColor: 'rgba(0,230,118,0.8)',
+      borderRadius: 6,
+      borderSkipped: false,
+    }], { currency: true });
+
+    // Campanhas — invertido: campanha = source (público), source = campanha
+    makeBarList(document.getElementById('bar-campanha'), utmSource, 'source', 'quantidade', true);
+    makeBarList(document.getElementById('bar-source'), utmCampanha, 'campanha', 'quantidade', true);
+    makeBarList(document.getElementById('bar-content'), utmContent, 'content', 'quantidade', true);
+
+    // Perfil
+    makeBarList(document.getElementById('bar-especialidade'), especialidade, 'especialidade', 'quantidade');
+    makeBarList(document.getElementById('bar-desafio'), desafio, 'maior_desafio', 'quantidade');
+
+    // Faturamento declarado pie
+    const fatDistClean = fatDist.filter(r => r.faturamento_declarado && num(r.quantidade) > 0);
+    makeChart('chart-fat-decl', 'doughnut', fatDistClean.map(r => r.faturamento_declarado), [{
+      data: fatDistClean.map(r => num(r.quantidade)),
+      backgroundColor: COLORS.slice(0, fatDistClean.length),
+      borderWidth: 0,
+      hoverOffset: 4,
+    }], { extra: { cutout: '65%' } });
+
+    document.getElementById('pie-legend-fat').innerHTML = fatDistClean.map((r,i) => `
+      <div class="pie-legend-item">
+        <div class="pie-legend-dot" style="background:${COLORS[i]}"></div>
+        <span class="pie-legend-name">${r.faturamento_declarado}</span>
+        <span class="pie-legend-val">${num(r.quantidade)}</span>
+      </div>
+    `).join('');
+
+    document.getElementById('last-update').textContent = new Date().toLocaleTimeString('pt-BR');
+  } catch(e) {
+    console.error(e);
+  } finally {
+    const loading = document.getElementById('loading');
+    loading.style.opacity = '0';
+    setTimeout(() => loading.remove(), 500);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
