@@ -536,7 +536,7 @@ async function fetchSheet(key) {
 }
 
 function fmt(v){ const n=parseFloat(v); if(isNaN(n)||n===0) return 'R$ 0'; return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0}); }
-function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
+function num(v){ if(!v) return 0; const n=parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(n)?0:n; }
 function pct(a,b){ return b>0?((a/b)*100).toFixed(1)+'%':'0%'; }
 
 function parseLeadDate(s) {
