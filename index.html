@@ -80,14 +80,11 @@ header {
 
 .logo { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 
-.logo-mark {
-  width: 36px; height: 36px;
-  background: var(--gold);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 16px; color: #080808;
-  box-shadow: 0 0 20px rgba(245,200,66,0.3);
+.logo-img {
+  height: 44px;
+  width: auto;
   flex-shrink: 0;
+  display: block;
 }
 
 .logo-text h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
@@ -357,7 +354,7 @@ main { padding: 28px 0 60px; }
   <div class="container">
     <div class="header-inner">
       <div class="logo">
-        <div class="logo-mark">E</div>
+        <img src="https://raw.githubusercontent.com/EscaladaMedica/dashboard/main/Thg%20-%20FND_MARRON.png" alt="Escalada Médica" class="logo-img" />
         <div class="logo-text">
           <h1>Escalada Médica</h1>
           <p>Dashboard de Marketing e Vendas</p>
@@ -531,12 +528,7 @@ function pct(a,b){ return b>0?((a/b)*100).toFixed(1)+'%':'0%'; }
 
 function parseLeadDate(s) {
   if (!s) return null;
-  // DD/MM/YYYY HH:MM:SS  ou  DD/MM/YYYY
-  if (s.includes('/')) {
-    const p = s.split(' ')[0].split('/');
-    if (p.length === 3) return new Date(`${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`);
-  }
-  const d = new Date(s.split(' ')[0]);
+  const d = new Date(s);
   return isNaN(d) ? null : d;
 }
 
@@ -617,17 +609,17 @@ function fatOrderIdx(str) {
 
 function calcFromLeads(leads) {
   const total    = leads.length;
-  const qualif   = leads.filter(l=>l.qualificacao==='Qualificado').length;
-  const desqualif= leads.filter(l=>l.qualificacao==='Desqualificado').length;
+  const qualif   = leads.filter(l=>l.qualificacao==='qualificado').length;
+  const desqualif= leads.filter(l=>l.qualificacao==='desqualificado').length;
   const optin    = total - qualif - desqualif;
 
-  const sessaoLeads = leads.filter(l=>l.funil&&l.funil.toLowerCase().includes('sess'));
-  const masterLeads = leads.filter(l=>l.funil&&l.funil.toLowerCase().includes('master'));
+  const sessaoLeads = leads.filter(l=>l.funil==='sessao_estrategica');
+  const masterLeads = leads.filter(l=>l.funil==='masterclass_mi');
 
   function breakdown(fl) {
     const tot = fl.length;
-    const q   = fl.filter(l=>l.qualificacao==='Qualificado').length;
-    const dq  = fl.filter(l=>l.qualificacao==='Desqualificado').length;
+    const q   = fl.filter(l=>l.qualificacao==='qualificado').length;
+    const dq  = fl.filter(l=>l.qualificacao==='desqualificado').length;
     const fm  = {};
     fl.forEach(l=>{ const f=l.faturamento_declarado||'Não informado'; fm[f]=(fm[f]||0)+1; });
     const fatSorted = Object.entries(fm).sort((a,b)=>fatOrderIdx(a[0])-fatOrderIdx(b[0]));
@@ -683,10 +675,10 @@ function renderBreakdownHTML(bd) {
 }
 
 function getBDFromAllLeads(funilKey) {
-  const fl = rawLeads.filter(l=>l.funil&&l.funil.toLowerCase().includes(funilKey));
+  const fl = rawLeads.filter(l=>l.funil===funilKey);
   const tot = fl.length;
-  const q   = fl.filter(l=>l.qualificacao==='Qualificado').length;
-  const dq  = fl.filter(l=>l.qualificacao==='Desqualificado').length;
+  const q   = fl.filter(l=>l.qualificacao==='qualificado').length;
+  const dq  = fl.filter(l=>l.qualificacao==='desqualificado').length;
   const fm  = {};
   fl.forEach(l=>{ const f=l.faturamento_declarado||'Não informado'; fm[f]=(fm[f]||0)+1; });
   const fatSorted = Object.entries(fm).sort((a,b)=>fatOrderIdx(a[0])-fatOrderIdx(b[0]));
@@ -720,8 +712,8 @@ function renderAll(leads) {
   const fatS       = num(m.faturamento_sessao_estrategica);
   const fatM       = num(m.faturamento_masterclass_mi);
 
-  const bdSessao = isFiltered ? calc.sessao.bd : getBDFromAllLeads('sess');
-  const bdMaster = isFiltered ? calc.master.bd : getBDFromAllLeads('master');
+  const bdSessao = isFiltered ? calc.sessao.bd : getBDFromAllLeads('sessao_estrategica');
+  const bdMaster = isFiltered ? calc.master.bd : getBDFromAllLeads('masterclass_mi');
 
   // KPIs
   document.getElementById('kpi-grid').innerHTML = [
