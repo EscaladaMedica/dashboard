@@ -626,13 +626,18 @@ function calcFromLeads(leads) {
     const em = {};
     fl.forEach(l=>{ const e=l.especialidade||'Não informado'; em[e]=(em[e]||0)+1; });
     const espSorted = Object.entries(em).sort((a,b)=>b[1]-a[1]);
+    // faturamento só dos qualificados, excluindo faixas desqualificantes
+    const FAT_EXCLUIR = ['Abaixo de R$ 10.000','Entre R$ 10.000 e R$ 20.000','Não informado'];
+    const fmq = {};
+    qualLeads.forEach(l=>{ const f=l.faturamento_declarado||'Não informado'; if(!FAT_EXCLUIR.includes(f)){ fmq[f]=(fmq[f]||0)+1; } });
+    const fatQualSorted = Object.entries(fmq).sort((a,b)=>fatOrderIdx(a[0])-fatOrderIdx(b[0]));
     const am = {};
     qualLeads.forEach(l=>{ const a=l.utm_campaign||'Não capturado'; am[a]=(am[a]||0)+1; });
     const adsSorted = Object.entries(am).sort((a,b)=>b[1]-a[1]);
     const cm = {};
     qualLeads.forEach(l=>{ const c=l.utm_content||'Não capturado'; cm[c]=(cm[c]||0)+1; });
     const contentSorted = Object.entries(cm).sort((a,b)=>b[1]-a[1]);
-    return { tot, q, dq, fatSorted, espSorted, adsSorted, contentSorted };
+    return { tot, q, dq, fatSorted, fatQualSorted, espSorted, adsSorted, contentSorted };
   }
 
   // dist faturamento global (filtrado)
@@ -688,14 +693,24 @@ function renderBreakdownHTML(bd) {
       <span class="breakdown-val green">${count}</span>
     </div>`).join('');
 
+  const fatQualRows = (bd.fatQualSorted||[]).slice(0,5).map(([label,count])=>`
+    <div class="breakdown-row">
+      <span class="breakdown-label">${label}</span>
+      <span class="breakdown-val">${count}<span class="breakdown-sub-pct">(${pct(count,q)})</span></span>
+    </div>`).join('');
+
   return `
     <div class="funil-breakdown">
-      <div class="breakdown-row" style="margin-bottom:14px">
+      <div class="breakdown-row" style="margin-bottom:6px">
         <span class="breakdown-label" style="font-size:12px;color:var(--text)">Qualificados</span>
         <span class="breakdown-val green" style="font-size:18px">${q}<span class="breakdown-sub-pct">(${pct(q,tot)})</span></span>
       </div>
-      <div class="breakdown-fat-title">Faturamento Declarado</div>
-      ${fatRows||'<span class="breakdown-label" style="color:var(--muted)">Sem dados</span>'}
+      <div class="breakdown-row" style="margin-bottom:14px">
+        <span class="breakdown-label" style="font-size:12px;color:var(--text)">Desqualificados</span>
+        <span class="breakdown-val red" style="font-size:18px">${dq}<span class="breakdown-sub-pct">(${pct(dq,tot)})</span></span>
+      </div>
+      <div class="breakdown-fat-title">Faturamento (qualificados)</div>
+      ${fatQualRows||'<span class="breakdown-label" style="color:var(--muted)">Sem dados</span>'}
       <div class="breakdown-fat-title">Especialidade</div>
       ${espRows||'<span class="breakdown-label" style="color:var(--muted)">Sem dados</span>'}
       <div class="breakdown-fat-title">Conjunto — Top 3</div>
@@ -723,7 +738,11 @@ function getBDFromAllLeads(funilKey) {
   const cm = {};
   qualLeads.forEach(l=>{ const c=l.utm_content||'Não capturado'; cm[c]=(cm[c]||0)+1; });
   const contentSorted = Object.entries(cm).sort((a,b)=>b[1]-a[1]);
-  return { tot, q, dq, fatSorted, espSorted, adsSorted, contentSorted };
+  const FAT_EXCLUIR = ['Abaixo de R$ 10.000','Entre R$ 10.000 e R$ 20.000','Não informado'];
+  const fmq = {};
+  qualLeads.forEach(l=>{ const f=l.faturamento_declarado||'Não informado'; if(!FAT_EXCLUIR.includes(f)){ fmq[f]=(fmq[f]||0)+1; } });
+  const fatQualSorted = Object.entries(fmq).sort((a,b)=>fatOrderIdx(a[0])-fatOrderIdx(b[0]));
+  return { tot, q, dq, fatSorted, fatQualSorted, espSorted, adsSorted, contentSorted };
 }
 
 function showBadge(ids) {
