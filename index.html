@@ -629,7 +629,10 @@ function calcFromLeads(leads) {
     const am = {};
     qualLeads.forEach(l=>{ const a=l.utm_campaign||'Não capturado'; am[a]=(am[a]||0)+1; });
     const adsSorted = Object.entries(am).sort((a,b)=>b[1]-a[1]);
-    return { tot, q, dq, fatSorted, espSorted, adsSorted };
+    const cm = {};
+    qualLeads.forEach(l=>{ const c=l.utm_content||'Não capturado'; cm[c]=(cm[c]||0)+1; });
+    const contentSorted = Object.entries(cm).sort((a,b)=>b[1]-a[1]);
+    return { tot, q, dq, fatSorted, espSorted, adsSorted, contentSorted };
   }
 
   // dist faturamento global (filtrado)
@@ -659,38 +662,46 @@ function calcFromLeads(leads) {
 
 function renderBreakdownHTML(bd) {
   const { tot, q, dq, fatSorted, espSorted, adsSorted } = bd;
+
   const fatRows = fatSorted.slice(0,5).map(([label,count])=>`
     <div class="breakdown-row">
       <span class="breakdown-label">${label}</span>
       <span class="breakdown-val">${count}<span class="breakdown-sub-pct">(${pct(count,tot)})</span></span>
     </div>`).join('');
-  const espRows = (espSorted||[]).slice(0,4).map(([label,count])=>`
+
+  const espRows = (espSorted||[]).slice(0,3).map(([label,count])=>`
     <div class="breakdown-row">
       <span class="breakdown-label">${label}</span>
-      <span class="breakdown-val">${count}<span class="breakdown-sub-pct">(${pct(count,tot)})</span></span>
+      <span class="breakdown-val">${count}</span>
     </div>`).join('');
-  const adsRows = (adsSorted||[]).slice(0,4).map(([label,count])=>`
+
+  // Conjunto = utm_campaign, Ad = utm_content — top 3 entre qualificados
+  const conjRows = (adsSorted||[]).slice(0,3).map(([label,count])=>`
     <div class="breakdown-row">
       <span class="breakdown-label">${label}</span>
       <span class="breakdown-val green">${count}</span>
     </div>`).join('');
+
+  const adRows = (bd.contentSorted||[]).slice(0,3).map(([label,count])=>`
+    <div class="breakdown-row">
+      <span class="breakdown-label">${label}</span>
+      <span class="breakdown-val green">${count}</span>
+    </div>`).join('');
+
   return `
     <div class="funil-breakdown">
-      <div class="funil-breakdown-title">Qualificação</div>
-      <div class="breakdown-row">
-        <span class="breakdown-label">Qualificados</span>
-        <span class="breakdown-val green">${q}<span class="breakdown-sub-pct">(${pct(q,tot)})</span></span>
-      </div>
-      <div class="breakdown-row">
-        <span class="breakdown-label">Desqualificados</span>
-        <span class="breakdown-val red">${dq}<span class="breakdown-sub-pct">(${pct(dq,tot)})</span></span>
+      <div class="breakdown-row" style="margin-bottom:14px">
+        <span class="breakdown-label" style="font-size:12px;color:var(--text)">Qualificados</span>
+        <span class="breakdown-val green" style="font-size:18px">${q}<span class="breakdown-sub-pct">(${pct(q,tot)})</span></span>
       </div>
       <div class="breakdown-fat-title">Faturamento Declarado</div>
       ${fatRows||'<span class="breakdown-label" style="color:var(--muted)">Sem dados</span>'}
       <div class="breakdown-fat-title">Especialidade</div>
       ${espRows||'<span class="breakdown-label" style="color:var(--muted)">Sem dados</span>'}
-      <div class="breakdown-fat-title">Ads → Leads Qualificados</div>
-      ${adsRows||'<span class="breakdown-label" style="color:var(--muted)">Sem dados</span>'}
+      <div class="breakdown-fat-title">Conjunto — Top 3</div>
+      ${conjRows||'<span class="breakdown-label" style="color:var(--muted)">Sem dados</span>'}
+      <div class="breakdown-fat-title">Ad — Top 3</div>
+      ${adRows||'<span class="breakdown-label" style="color:var(--muted)">Sem dados</span>'}
     </div>`;
 }
 
@@ -709,7 +720,10 @@ function getBDFromAllLeads(funilKey) {
   const am = {};
   qualLeads.forEach(l=>{ const a=l.utm_campaign||'Não capturado'; am[a]=(am[a]||0)+1; });
   const adsSorted = Object.entries(am).sort((a,b)=>b[1]-a[1]);
-  return { tot, q, dq, fatSorted, espSorted, adsSorted };
+  const cm = {};
+  qualLeads.forEach(l=>{ const c=l.utm_content||'Não capturado'; cm[c]=(cm[c]||0)+1; });
+  const contentSorted = Object.entries(cm).sort((a,b)=>b[1]-a[1]);
+  return { tot, q, dq, fatSorted, espSorted, adsSorted, contentSorted };
 }
 
 function showBadge(ids) {
