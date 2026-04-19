@@ -878,6 +878,10 @@ function renderAll(leads) {
   const fat        = num(m.faturamento_total);
   const fatS       = num(m.faturamento_sessao_estrategica);
   const fatM       = num(m.faturamento_masterclass_mi);
+  const valorSE    = num(m.total_valor_se);
+  const valorMI    = num(m.total_valor_mi);
+  const cashSE     = num(m.total_cash_se);
+  const cashMI     = num(m.total_cash_mi);
 
   const bdSessao = isFiltered ? calc.sessao.bd : getBDFromAllLeads('sessao_estrategica');
   const bdMaster = isFiltered ? calc.master.bd : getBDFromAllLeads('masterclass_mi');
@@ -932,10 +936,12 @@ function renderAll(leads) {
     {
       name:'Sessão Estratégica', leads:leadsS, fat:fatS, color:'#f5c842', rgb:'245,200,66', bd:bdSessao,
       inv:traf.invSE, cpl:traf.cplSE, cmql:traf.cmqlSE, capt:null,
+      valor:valorSE, cash:cashSE,
     },
     {
       name:'Masterclass MI', leads:leadsM, fat:fatM, color:'#00b0ff', rgb:'0,176,255', bd:bdMaster,
       inv:traf.invMI, cpl:traf.cplMI, cmql:traf.cmqlMI, capt:traf.captMI,
+      valor:valorMI, cash:cashMI,
     },
   ];
   document.getElementById('funil-cards').innerHTML=funils.map(f=>`
@@ -969,6 +975,19 @@ function renderAll(leads) {
         <div class="funil-stat">
           <div class="funil-stat-label">Captação/dia</div>
           <div class="funil-stat-value" style="font-size:16px">${f.capt>0?f.capt.toFixed(1)+' leads':'—'}</div>
+        </div>`:''}
+        <div class="funil-stat" style="--accent:#f5c842">
+          <div class="funil-stat-label">Total Contratado</div>
+          <div class="funil-stat-value" style="font-size:16px">${f.valor>0?fmt(f.valor):'—'}</div>
+        </div>
+        <div class="funil-stat" style="--accent:#00e676">
+          <div class="funil-stat-label">Cash Coletado</div>
+          <div class="funil-stat-value" style="font-size:16px;color:var(--green)">${f.cash>0?fmt(f.cash):'—'}</div>
+        </div>
+        ${f.valor>0?`
+        <div class="funil-stat">
+          <div class="funil-stat-label">% Coletado</div>
+          <div class="funil-stat-value" style="font-size:16px;color:${f.cash/f.valor>=1?'var(--green)':f.cash/f.valor>=0.5?'var(--gold)':'var(--red)'}">${pct(f.cash,f.valor)}</div>
         </div>`:''}
       </div>
       <div class="funil-bar-label">% do total de leads</div>
