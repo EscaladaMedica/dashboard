@@ -486,6 +486,7 @@ const SHEET_NAMES = {
   dist_desafio:       "dist_desafio",
   leads_por_mes:      "leads_por_mes",
   leads_tratados:     "leads_tratados",
+  leads_rows:         "leads_rows",
   utm_campanha:       "utm_campanha",
   utm_source:         "utm_source",
   utm_content:        "utm_content",
@@ -507,6 +508,7 @@ const FAT_ORDER = [
 let rawLeads       = [];
 let rawTrafegoSE   = [];
 let rawTrafegoMI   = [];
+let rawLeadsRows   = [];
 let staticData     = {};
 let chartInst      = {};
 let dateFrom       = null;
@@ -554,7 +556,7 @@ async function fetchTrafegoSheet() {
 }
 
 function fmt(v){ const n=parseFloat(v); if(isNaN(n)||n===0) return 'R$ 0'; return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:0}); }
-function num(v){ if(!v) return 0; const n=parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(n)?0:n; }
+function num(v){ if(!v) return 0; const s=String(v).trim(); if(s.startsWith('{')){try{const o=JSON.parse(s);return o.value||0;}catch(e){}} const n=parseFloat(s.replace(/\./g,'').replace(',','.')); return isNaN(n)?0:n; }
 function pct(a,b){ return b>0?((a/b)*100).toFixed(1)+'%':'0%'; }
 
 function normalizeEsp(s) {
@@ -943,15 +945,30 @@ function renderAll(leads) {
   const traf = calcTrafego(tSE, tMI, isFiltered ? calc.sessao.bd.q : getBDFromAllLeads('sessao_estrategica').q, isFiltered ? calc.master.bd.q : getBDFromAllLeads('masterclass_mi').q);
 
   // KPIs
+  const aplicacoes      = filterByDate(rawLeadsRows).filter(r => (r.nome||'').includes('Aplicação')).length;
+
+  const leadsAgendadas  = leads.filter(l => l.stage === 'sessao_agendada');
+  const leadsRealizadas = leads.filter(l => l.stage === 'sessao_realizada');
+  const totalAgendadas  = leadsAgendadas.length;
+  const totalRealizadas = leadsRealizadas.length;
+  const agendadasQualif = leadsAgendadas.filter(l => l.qualificacao === 'qualificado').length;
+  const realizadasQualif= leadsRealizadas.filter(l => l.qualificacao === 'qualificado').length;
+
+  const vendasQualif    = leads.filter(l => l.qualificacao === 'qualificado'   && num(l.valor_venda||l.venda||0) > 0).length;
+  const vendasDesqualif = leads.filter(l => l.qualificacao === 'desqualificado'&& num(l.valor_venda||l.venda||0) > 0).length;
+
   document.getElementById('kpi-grid').innerHTML = [
-    {label:'Total de Leads',  value:totalLeads.toLocaleString('pt-BR'),           sub:'captados',                              color:'#f5c842',rgb:'245,200,66'},
-    {label:'Qualificados',    value:qualif.toLocaleString('pt-BR'),               sub:pct(qualif,totalLeads)+' do total',      color:'#00e676',rgb:'0,230,118'},
-    {label:'Desqualificados', value:desqualif.toLocaleString('pt-BR'),            sub:pct(desqualif,totalLeads)+' do total',   color:'#ff3d57',rgb:'255,61,87'},
-    {label:'Vendas Fechadas', value:vendas.toLocaleString('pt-BR'),               sub:pct(vendas,qualif)+' conversão',         color:'#00b0ff',rgb:'0,176,255'},
-    {label:'Faturamento',     value:fat>0?fmt(fat):'—',                           sub:'total faturado',                        color:'#00e676',rgb:'0,230,118'},
-    {label:'Cash Collect',    value:(cashSE+cashMI)>0?fmt(cashSE+cashMI):'—',    sub:'total recebido',                        color:'#d500f9',rgb:'213,0,249'},
-    {label:'Investimento',    value:traf.invTot>0?fmt(traf.invTot):'—',           sub:'total em ads',                          color:'#f5c842',rgb:'245,200,66'},
-    {label:'CPL Geral',       value:traf.cplTot>0?fmt(traf.cplTot):'—',          sub:'custo por lead',                        color:'#ff6d00',rgb:'255,109,0'},
+    {label:'Total de Leads',     value:totalLeads.toLocaleString('pt-BR'),        sub:'captados',                                                    color:'#f5c842',rgb:'245,200,66'},
+    {label:'Qualificados',       value:qualif.toLocaleString('pt-BR'),            sub:pct(qualif,totalLeads)+' do total',                            color:'#00e676',rgb:'0,230,118'},
+    {label:'Desqualificados',    value:desqualif.toLocaleString('pt-BR'),         sub:pct(desqualif,totalLeads)+' do total',                         color:'#ff3d57',rgb:'255,61,87'},
+    {label:'Aplicação',          value:aplicacoes.toLocaleString('pt-BR'),        sub:pct(aplicacoes,qualif)+' dos qualificados',                    color:'#00b0ff',rgb:'0,176,255'},
+    {label:'Sessão Agendada',    value:totalAgendadas.toLocaleString('pt-BR'),    sub:pct(agendadasQualif,totalAgendadas)+' qualificadas',            color:'#00e5ff',rgb:'0,229,255'},
+    {label:'Reunião Realizada',  value:totalRealizadas.toLocaleString('pt-BR'),   sub:pct(realizadasQualif,totalRealizadas)+' qualificadas',          color:'#76ff03',rgb:'118,255,3'},
+    {label:'Vendas Fechadas',    value:vendas.toLocaleString('pt-BR'),            sub:pct(vendas,totalRealizadas)+' das reuniões',                   color:'#d500f9',rgb:'213,0,249'},
+    {label:'Faturamento',        value:fat>0?fmt(fat):'—',                        sub:'total faturado',                                              color:'#00e676',rgb:'0,230,118'},
+    {label:'Cash Collect',       value:(cashSE+cashMI)>0?fmt(cashSE+cashMI):'—', sub:'total recebido',                                              color:'#f5c842',rgb:'245,200,66'},
+    {label:'Investimento',       value:traf.invTot>0?fmt(traf.invTot):'—',        sub:'total em ads',                                                color:'#ff6d00',rgb:'255,109,0'},
+    {label:'CPL Geral',          value:traf.cplTot>0?fmt(traf.cplTot):'—',       sub:'custo por lead',                                              color:'#ff6d00',rgb:'255,109,0'},
   ].map(k=>`
     <div class="kpi-card" style="--accent:${k.color};--accent-rgb:${k.rgb}">
       <div class="kpi-label">${k.label}</div>
@@ -1099,13 +1116,14 @@ function applyDateFilter() {
 
 async function init() {
   try {
-    const [metricas, espDist, fatDist, desafioDist, porMes, leadsTratados, utmCampanha, utmSource, utmContent, trTrafego] = await Promise.all([
+    const [metricas, espDist, fatDist, desafioDist, porMes, leadsTratados, leadsRows, utmCampanha, utmSource, utmContent, trTrafego] = await Promise.all([
       fetchSheet('metricas'),
       fetchSheet('dist_especialidade'),
       fetchSheet('dist_faturamento'),
       fetchSheet('dist_desafio'),
       fetchSheet('leads_por_mes'),
       fetchSheet('leads_tratados'),
+      fetchSheet('leads_rows'),
       fetchSheet('utm_campanha'),
       fetchSheet('utm_source'),
       fetchSheet('utm_content'),
@@ -1113,6 +1131,7 @@ async function init() {
     ]);
 
     rawLeads       = leadsTratados;
+    rawLeadsRows   = leadsRows;
     rawTrafegoSE   = trTrafego.filter(r => r.data && r.campaign_name.includes('SE'));
     rawTrafegoMI   = trTrafego.filter(r => r.data && r.campaign_name.includes('Webnario'));
 
