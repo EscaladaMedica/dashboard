@@ -557,6 +557,39 @@ function fmt(v){ const n=parseFloat(v); if(isNaN(n)||n===0) return 'R$ 0'; retur
 function num(v){ if(!v) return 0; const n=parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isNaN(n)?0:n; }
 function pct(a,b){ return b>0?((a/b)*100).toFixed(1)+'%':'0%'; }
 
+function normalizeEsp(s) {
+  if (!s || !s.trim()) return 'Não informado';
+  const v = s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  if (/nutrol/.test(v))                                          return 'Nutrologia';
+  if (/pediat/.test(v))                                          return 'Pediatria';
+  if (/ginec/.test(v))                                           return 'Ginecologia';
+  if (/ortop/.test(v))                                           return 'Ortopedia';
+  if (/dermat/.test(v))                                          return 'Dermatologia';
+  if (/cardiol/.test(v))                                         return 'Cardiologia';
+  if (/endocrin/.test(v))                                        return 'Endocrinologia';
+  if (/neurolog/.test(v))                                        return 'Neurologia';
+  if (/psiquiat/.test(v))                                        return 'Psiquiatria';
+  if (/oftalm/.test(v))                                          return 'Oftalmologia';
+  if (/urolog/.test(v))                                          return 'Urologia';
+  if (/cirurg/.test(v))                                          return 'Cirurgia Geral';
+  if (/otorrin|orl\b/.test(v))                                   return 'Otorrinolaringologia';
+  if (/anestesiol/.test(v))                                      return 'Anestesiologia';
+  if (/gastroenterol/.test(v))                                   return 'Gastroenterologia';
+  if (/pneumol/.test(v))                                         return 'Pneumologia';
+  if (/reumatol/.test(v))                                        return 'Reumatologia';
+  if (/hematol/.test(v))                                         return 'Hematologia';
+  if (/nefrol/.test(v))                                          return 'Nefrologia';
+  if (/infectol/.test(v))                                        return 'Infectologia';
+  if (/oncol/.test(v))                                           return 'Oncologia';
+  if (/radiol/.test(v))                                          return 'Radiologia';
+  if (/med.*familia|familia.*med|medico.*familia/.test(v))       return 'Medicina de Família';
+  if (/med.*trabalho|trabalho.*med/.test(v))                     return 'Medicina do Trabalho';
+  if (/clinico geral|cl\.?\s*geral|generalista|med.*geral|geral/.test(v)) return 'Clínico Geral';
+  if (/nao inform|nao preenche|nenhum|^-$|^—$/.test(v))         return 'Não informado';
+  // fallback: title case
+  return s.trim().replace(/(?:^|\s)\S/g, c => c.toUpperCase());
+}
+
 function parseLeadDate(s) {
   if (!s) return null;
   const d = new Date(s);
@@ -699,7 +732,7 @@ function calcFromLeads(leads) {
     fl.forEach(l=>{ const f=l.faturamento_declarado||'Não informado'; fm[f]=(fm[f]||0)+1; });
     const fatSorted = Object.entries(fm).sort((a,b)=>fatOrderIdx(a[0])-fatOrderIdx(b[0]));
     const em = {};
-    fl.forEach(l=>{ const e=l.especialidade||'Não informado'; em[e]=(em[e]||0)+1; });
+    fl.forEach(l=>{ const e=normalizeEsp(l.especialidade); em[e]=(em[e]||0)+1; });
     const espSorted = Object.entries(em).sort((a,b)=>b[1]-a[1]);
     // faturamento só dos qualificados, excluindo faixas desqualificantes
     const FAT_EXCLUIR = ['Abaixo de R$ 10.000','Entre R$ 10.000 e R$ 20.000','Não informado'];
@@ -727,7 +760,7 @@ function calcFromLeads(leads) {
 
   // dist especialidade
   const em = {};
-  leads.forEach(l=>{ const e=l.especialidade||'Não informado'; em[e]=(em[e]||0)+1; });
+  leads.forEach(l=>{ const e=normalizeEsp(l.especialidade); em[e]=(em[e]||0)+1; });
   const espDist = Object.entries(em).map(([k,v])=>({especialidade:k,quantidade:v}));
 
   // dist desafio
@@ -852,7 +885,7 @@ function getBDFromAllLeads(funilKey) {
   fl.forEach(l=>{ const f=l.faturamento_declarado||'Não informado'; fm[f]=(fm[f]||0)+1; });
   const fatSorted = Object.entries(fm).sort((a,b)=>fatOrderIdx(a[0])-fatOrderIdx(b[0]));
   const em = {};
-  fl.forEach(l=>{ const e=l.especialidade||'Não informado'; em[e]=(em[e]||0)+1; });
+  fl.forEach(l=>{ const e=normalizeEsp(l.especialidade); em[e]=(em[e]||0)+1; });
   const espSorted = Object.entries(em).sort((a,b)=>b[1]-a[1]);
   const am = {};
   qualLeads.forEach(l=>{ const a=l.utm_campaign||'Não capturado'; am[a]=(am[a]||0)+1; });
@@ -943,7 +976,7 @@ function renderAll(leads) {
     <div class="qual-row">
       <div class="qual-top">
         <span class="qual-name">${q.name}</span>
-        <span class="qual-count" style="color:${q.color}">${q.count}</span>
+        <span class="qual-count" style="color:${q.color}">${q.count} <span style="font-size:.75em;opacity:.7">${pct(q.count,totalLeads)}</span></span>
       </div>
       <div class="qual-bar-bg">
         <div class="qual-bar-fill" style="width:0%;background:${q.color}" data-w="${totalLeads>0?(q.count/totalLeads)*100:0}"></div>
@@ -1089,7 +1122,11 @@ async function init() {
     staticData = {
       metricas, porMes, utmCampanha, utmSource, utmContent,
       fatDistStatic:    fatDistSorted,
-      espDistStatic:    espDist,
+      espDistStatic:    (() => {
+        const m = {};
+        espDist.forEach(r => { const k = normalizeEsp(r.especialidade); m[k] = (m[k]||0) + num(r.quantidade); });
+        return Object.entries(m).map(([k,v]) => ({especialidade:k, quantidade:String(v)}));
+      })(),
       desafioDistStatic:desafioDist,
     };
 
