@@ -937,7 +937,12 @@ function renderAll(leads) {
   const valorMI    = num(m.total_valor_mi);
   const cashSE     = num(m.total_cash_se);
   const cashMI     = num(m.total_cash_mi);
-  const cashTotal  = filterByDate(rawLeadsRaw).reduce((s,r) => s + num(r['Cash'] || ''), 0);
+  if(rawLeadsRaw.length) console.log('[cash debug] primeira linha leads_raw:', rawLeadsRaw[0], '| chaves:', Object.keys(rawLeadsRaw[0]));
+  const cashTotal  = filterByDate(rawLeadsRaw).reduce((s,r) => {
+    const v = r['Cash'] ?? r['cash'] ?? r['CASH'] ?? '';
+    return s + num(v);
+  }, 0);
+  console.log('[cash debug] cashTotal:', cashTotal, '| linhas:', rawLeadsRaw.length);
 
   const bdSessao = isFiltered ? calc.sessao.bd : getBDFromAllLeads('sessao_estrategica');
   const bdMaster = isFiltered ? calc.master.bd : getBDFromAllLeads('masterclass_mi');
