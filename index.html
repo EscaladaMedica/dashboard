@@ -526,7 +526,7 @@ async function fetchSheet(key) {
   const res   = await fetch(url);
   const text  = await res.text();
   const rows  = text.trim().split('\n').map(r =>
-    r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim())
+    r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').replace(/""/g,'"').trim())
   );
   const hdrs = rows[0];
   return rows.slice(1).map(row => {
@@ -541,7 +541,7 @@ async function fetchTrafegoSheet() {
   const res  = await fetch(url);
   const text = await res.text();
   const rows = text.trim().split('\n').map(r =>
-    r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim())
+    r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').replace(/""/g,'"').trim())
   );
   const hdrs = rows[0];
   return rows.slice(1).map(row => {
