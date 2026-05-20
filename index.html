@@ -915,6 +915,8 @@ function renderAll(leads) {
     {label:'Qualificados',    value:qualif.toLocaleString('pt-BR'),               sub:pct(qualif,totalLeads)+' do total',      color:'#00e676',rgb:'0,230,118'},
     {label:'Desqualificados', value:desqualif.toLocaleString('pt-BR'),            sub:pct(desqualif,totalLeads)+' do total',   color:'#ff3d57',rgb:'255,61,87'},
     {label:'Vendas Fechadas', value:vendas.toLocaleString('pt-BR'),               sub:pct(vendas,qualif)+' conversão',         color:'#00b0ff',rgb:'0,176,255'},
+    {label:'Faturamento',     value:fat>0?fmt(fat):'—',                           sub:'total faturado',                        color:'#00e676',rgb:'0,230,118'},
+    {label:'Cash Collect',    value:(cashSE+cashMI)>0?fmt(cashSE+cashMI):'—',    sub:'total recebido',                        color:'#d500f9',rgb:'213,0,249'},
     {label:'Investimento',    value:traf.invTot>0?fmt(traf.invTot):'—',           sub:'total em ads',                          color:'#f5c842',rgb:'245,200,66'},
     {label:'CPL Geral',       value:traf.cplTot>0?fmt(traf.cplTot):'—',          sub:'custo por lead',                        color:'#ff6d00',rgb:'255,109,0'},
   ].map(k=>`
