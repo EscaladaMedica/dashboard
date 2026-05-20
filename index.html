@@ -471,13 +471,12 @@ main { padding: 28px 0 60px; }
 
 <script>
 const SHEET_ID = "1-QJJrp8ScoOXN3iqdzMVzkqlZnlclB6tOPzvvWCE_NA";
+const SHEET_ID_TRAFEGO = "1lvL5LIm7U0UcRSbX1Ay2qRb9SFIfh5PExwdnqKpI1PU";
 
 const GIDS = {
   utm_campanha:       "1070461951",
   utm_source:         "1544629796",
   utm_content:        "1675881965",
-  trafego_se:         "826013861",
-  trafego_masterclass:"824435965",
 };
 
 const SHEET_NAMES = {
@@ -490,8 +489,6 @@ const SHEET_NAMES = {
   utm_campanha:       "utm_campanha",
   utm_source:         "utm_source",
   utm_content:        "utm_content",
-  trafego_se:         "trafego_se",
-  trafego_masterclass:"trafego_masterclass",
 };
 
 const COLORS = ["#f5c842","#00e676","#00b0ff","#d500f9","#ff6d00","#ff3d57","#00e5ff","#76ff03","#ffab40","#e040fb"];
@@ -532,6 +529,27 @@ async function fetchSheet(key) {
     const o = {};
     hdrs.forEach((h,i) => { o[h] = row[i] || ''; });
     return o;
+  });
+}
+
+async function fetchTrafegoSheet() {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID_TRAFEGO}/gviz/tq?tqx=out:csv`;
+  const res  = await fetch(url);
+  const text = await res.text();
+  const rows = text.trim().split('\n').map(r =>
+    r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim())
+  );
+  const hdrs = rows[0];
+  return rows.slice(1).map(row => {
+    const o = {};
+    hdrs.forEach((h,i) => { o[h] = row[i] || ''; });
+    // Normaliza nomes de colunas para o formato interno
+    return {
+      data:          o['Day']           || '',
+      campaign_name: o['Campaign Name'] || '',
+      investimento:  o['Amount Spent']  || '',
+      leads:         o['Leads']         || '',
+    };
   });
 }
 
@@ -1046,7 +1064,7 @@ function applyDateFilter() {
 
 async function init() {
   try {
-    const [metricas, espDist, fatDist, desafioDist, porMes, leadsTratados, utmCampanha, utmSource, utmContent, trSE, trMI] = await Promise.all([
+    const [metricas, espDist, fatDist, desafioDist, porMes, leadsTratados, utmCampanha, utmSource, utmContent, trTrafego] = await Promise.all([
       fetchSheet('metricas'),
       fetchSheet('dist_especialidade'),
       fetchSheet('dist_faturamento'),
@@ -1056,13 +1074,12 @@ async function init() {
       fetchSheet('utm_campanha'),
       fetchSheet('utm_source'),
       fetchSheet('utm_content'),
-      fetchSheet('trafego_se'),
-      fetchSheet('trafego_masterclass'),
+      fetchTrafegoSheet(),
     ]);
 
     rawLeads       = leadsTratados;
-    rawTrafegoSE   = trSE.filter(r=>r.data);
-    rawTrafegoMI   = trMI.filter(r=>r.data);
+    rawTrafegoSE   = trTrafego.filter(r => r.data && r.campaign_name.includes('SE'));
+    rawTrafegoMI   = trTrafego.filter(r => r.data && r.campaign_name.includes('Webnario'));
 
     // Ordenar faturamento declarado estático
     const fatDistSorted = [...fatDist].sort((a,b)=>fatOrderIdx(a.faturamento_declarado)-fatOrderIdx(b.faturamento_declarado));
