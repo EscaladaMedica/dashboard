@@ -487,6 +487,7 @@ const SHEET_NAMES = {
   leads_por_mes:      "leads_por_mes",
   leads_tratados:     "leads_tratados",
   leads_rows:         "leads_rows",
+  leads_raw:          "leads_raw",
   utm_campanha:       "utm_campanha",
   utm_source:         "utm_source",
   utm_content:        "utm_content",
@@ -509,6 +510,7 @@ let rawLeads       = [];
 let rawTrafegoSE   = [];
 let rawTrafegoMI   = [];
 let rawLeadsRows   = [];
+let rawLeadsRaw    = [];
 let staticData     = {};
 let chartInst      = {};
 let dateFrom       = null;
@@ -935,6 +937,7 @@ function renderAll(leads) {
   const valorMI    = num(m.total_valor_mi);
   const cashSE     = num(m.total_cash_se);
   const cashMI     = num(m.total_cash_mi);
+  const cashTotal  = filterByDate(rawLeadsRaw).reduce((s,r) => s + num(r['Cash'] || ''), 0);
 
   const bdSessao = isFiltered ? calc.sessao.bd : getBDFromAllLeads('sessao_estrategica');
   const bdMaster = isFiltered ? calc.master.bd : getBDFromAllLeads('masterclass_mi');
@@ -966,7 +969,7 @@ function renderAll(leads) {
     {label:'Reunião Realizada',  value:totalRealizadas.toLocaleString('pt-BR'),   sub:pct(realizadasQualif,totalRealizadas)+' qualificadas',          color:'#76ff03',rgb:'118,255,3'},
     {label:'Vendas Fechadas',    value:vendas.toLocaleString('pt-BR'),            sub:pct(vendas,totalRealizadas)+' das reuniões',                   color:'#d500f9',rgb:'213,0,249'},
     {label:'Faturamento',        value:fat>0?fmt(fat):'—',                        sub:'total faturado',                                              color:'#00e676',rgb:'0,230,118'},
-    {label:'Cash Collect',       value:(cashSE+cashMI)>0?fmt(cashSE+cashMI):'—', sub:'total recebido',                                              color:'#f5c842',rgb:'245,200,66'},
+    {label:'Cash Collect',       value:cashTotal>0?fmt(cashTotal):'—',            sub:'total recebido',                                              color:'#f5c842',rgb:'245,200,66'},
     {label:'Investimento',       value:traf.invTot>0?fmt(traf.invTot):'—',        sub:'total em ads',                                                color:'#ff6d00',rgb:'255,109,0'},
     {label:'CPL Geral',          value:traf.cplTot>0?fmt(traf.cplTot):'—',       sub:'custo por lead',                                              color:'#ff6d00',rgb:'255,109,0'},
   ].map(k=>`
@@ -1116,7 +1119,7 @@ function applyDateFilter() {
 
 async function init() {
   try {
-    const [metricas, espDist, fatDist, desafioDist, porMes, leadsTratados, leadsRows, utmCampanha, utmSource, utmContent, trTrafego] = await Promise.all([
+    const [metricas, espDist, fatDist, desafioDist, porMes, leadsTratados, leadsRows, leadsRaw, utmCampanha, utmSource, utmContent, trTrafego] = await Promise.all([
       fetchSheet('metricas'),
       fetchSheet('dist_especialidade'),
       fetchSheet('dist_faturamento'),
@@ -1124,6 +1127,7 @@ async function init() {
       fetchSheet('leads_por_mes'),
       fetchSheet('leads_tratados'),
       fetchSheet('leads_rows'),
+      fetchSheet('leads_raw'),
       fetchSheet('utm_campanha'),
       fetchSheet('utm_source'),
       fetchSheet('utm_content'),
@@ -1132,6 +1136,7 @@ async function init() {
 
     rawLeads       = leadsTratados;
     rawLeadsRows   = leadsRows;
+    rawLeadsRaw    = leadsRaw;
     rawTrafegoSE   = trTrafego.filter(r => r.data && r.campaign_name.includes('SE'));
     rawTrafegoMI   = trTrafego.filter(r => r.data && r.campaign_name.includes('Webnario'));
 
